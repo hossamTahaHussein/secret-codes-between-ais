@@ -1,0 +1,9 @@
+# Python 3.12. PyTorch must come from the CUDA 12.8 index (RTX 50-series / sm_120):
+#   uv pip install -r requirements.txt --index-url https://download.pytorch.org/whl/cu128 --extra-index-url https://pypi.org/simple
+torch==2.11.0+cu128
+transformers==5.20.2
+trl==1.16.0
+peft==0.21.2
+accelerate==1.15.0
+bitsandbytes==0.50.2
+datasets==5.1.0
