@@ -7,3 +7,4 @@ peft==0.21.2
 accelerate==1.15.0
 bitsandbytes==0.50.2
 datasets==5.1.0
+matplotlib==3.11.2  # only for scripts/make_figures.py
