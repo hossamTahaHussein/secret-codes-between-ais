@@ -1,0 +1,378 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Secret Codes, Live</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Public+Sans:wght@400;600&family=JetBrains+Mono:wght@400;600&family=Noto+Naskh+Arabic:wght@400;600&display=swap">
+<style>
+/* Layout: a single message thread per round (sender -> interceptors -> receiver), with the session
+   scoreboard beside it on wide screens and below it on phones. Same palette as the recorded explorer:
+   red and blue are the two secrets, amber is always an interceptor. */
+:root {
+  --bg: #f4f5f7; --surface: #ffffff; --ink: #15181d; --muted: #59616e; --line: #dadee5;
+  --red: #c42f2c; --red-soft: #fbe3e2; --blue: #2556c4; --blue-soft: #e1e9fb;
+  --watch: #8f560a; --watch-soft: #f7ecd9; --good: #2f7d4f; --good-soft: #e1f2e7;
+  --font-display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", sans-serif;
+  --font-body: "Public Sans", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+  --font-ar: "Noto Naskh Arabic", "Geeza Pro", "Segoe UI", serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1217; --surface: #171b22; --ink: #e7eaf0; --muted: #9aa3b1; --line: #2b313b;
+    --red: #f0645e; --red-soft: #3a1d1f; --blue: #7aa2ff; --blue-soft: #1a2540;
+    --watch: #e3aa4f; --watch-soft: #33270f; --good: #5fc488; --good-soft: #15301f; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1217; --surface: #171b22; --ink: #e7eaf0; --muted: #9aa3b1; --line: #2b313b;
+  --red: #f0645e; --red-soft: #3a1d1f; --blue: #7aa2ff; --blue-soft: #1a2540;
+  --watch: #e3aa4f; --watch-soft: #33270f; --good: #5fc488; --good-soft: #15301f; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.55 var(--font-body); }
+.wrap { max-width: 1180px; margin: 0 auto; padding-block: 28px 64px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: grid; gap: 24px; }
+h1, h2, h3 { font-family: var(--font-display); margin: 0; line-height: 1.1; text-wrap: balance; }
+h1 { font-size: clamp(1.8rem, 5vw, 2.8rem); font-weight: 800; letter-spacing: -0.02em; }
+h2 { font-size: 1.3rem; font-weight: 800; }
+h3 { font-size: 1rem; font-weight: 600; }
+p { margin: 0; max-width: 70ch; }
+.muted { color: var(--muted); }
+.eyebrow { font: 600 0.72rem/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+.num { font-variant-numeric: tabular-nums; }
+header { display: grid; gap: 10px; }
+.badges { display: flex; flex-wrap: wrap; gap: 8px; }
+.badge { font: 600 0.75rem/1 var(--font-mono); padding: 6px 9px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); }
+.badge.warn { border-color: var(--watch); color: var(--watch); }
+.badge.live { border-color: var(--good); color: var(--good); }
+
+.controls { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 14px; display: grid; gap: 12px; }
+.ctl-row { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: end; }
+.field { display: grid; gap: 4px; min-width: 0; }
+.field > span { font-size: 0.78rem; color: var(--muted); }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.seg button { font: 600 0.88rem/1 var(--font-body); padding: 10px 12px; border: 0; background: var(--surface); color: var(--muted); cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+select { font: 0.9rem var(--font-body); padding: 9px 10px; border-radius: 6px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); max-width: 100%; }
+.btn { font: 600 0.95rem/1 var(--font-body); padding: 12px 16px; border-radius: 6px; border: 1.5px solid var(--ink); background: var(--surface); color: var(--ink); cursor: pointer; }
+.btn.solid { background: var(--ink); color: var(--bg); }
+.btn:disabled { opacity: 0.45; cursor: default; }
+:focus-visible { outline: 3px solid var(--watch); outline-offset: 2px; }
+#status { font-size: 0.88rem; color: var(--muted); min-height: 1.4em; }
+
+.main { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 20px; align-items: start; }
+@media (max-width: 900px) { .main { grid-template-columns: minmax(0, 1fr); } }
+.thread { display: grid; gap: 28px; min-width: 0; }
+.empty { border: 1.5px dashed var(--line); border-radius: 8px; padding: 22px; color: var(--muted); display: grid; gap: 6px; }
+
+.round { display: grid; gap: 10px; min-width: 0; }
+.round-head { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: baseline; font-size: 0.85rem; color: var(--muted); }
+.round-head b { color: var(--ink); font-family: var(--font-display); font-size: 1rem; }
+.who { font: 600 0.72rem/1 var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+.bubble { border-radius: 14px; padding: 12px 16px; display: grid; gap: 8px; min-width: 0; max-width: 92%; }
+.bubble .text { font: 0.98rem/1.7 var(--font-body); overflow-wrap: anywhere; white-space: pre-wrap; }
+.bubble .text:lang(ar), [dir="rtl"] { font-family: var(--font-ar); font-size: 1.08rem; }
+.sender { justify-self: start; background: var(--surface); border: 1px solid var(--line); border-bottom-left-radius: 4px; }
+.receiver { justify-self: end; background: var(--surface); border: 1.5px solid var(--ink); border-bottom-right-radius: 4px; }
+.cursor::after { content: "▍"; color: var(--muted); animation: blink 1s steps(2) infinite; }
+@keyframes blink { 50% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .cursor::after { animation: none; } }
+mark { background: transparent; color: inherit; border-radius: 3px; padding: 0 2px; }
+mark.c-0 { background: var(--red-soft); box-shadow: inset 0 -2px 0 var(--red); }
+mark.c-1 { background: var(--blue-soft); box-shadow: inset 0 -2px 0 var(--blue); }
+mark.lit { background: var(--watch-soft); box-shadow: inset 0 -2px 0 var(--watch); font-weight: 600; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; font: 600 0.74rem/1 var(--font-mono); padding: 5px 8px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--muted); }
+.chip.s0 { color: var(--red); border-color: var(--red); } .chip.s1 { color: var(--blue); border-color: var(--blue); }
+.chip.flag { color: var(--watch); border-color: var(--watch); background: var(--watch-soft); }
+.chip.pass { color: var(--muted); }
+.chip.ok { color: var(--good); border-color: var(--good); background: var(--good-soft); }
+.chip.bad { color: var(--red); border-color: var(--red); background: var(--red-soft); }
+
+.listen { border-left: 3px solid var(--watch); padding: 4px 0 4px 14px; display: grid; gap: 10px; min-width: 0; }
+.listen h3 { color: var(--watch); font-size: 0.9rem; }
+.icpt { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 12px; align-items: center; padding-bottom: 8px; border-bottom: 1px solid var(--line); }
+.icpt .name { font-weight: 600; font-size: 0.92rem; }
+.icpt .detail { grid-column: 1 / -1; font-size: 0.8rem; color: var(--muted); }
+.icpt .extra { grid-column: 1 / -1; font-size: 0.88rem; background: var(--bg); border-radius: 8px; padding: 8px 10px; overflow-wrap: anywhere; }
+.meter { display: inline-flex; align-items: center; gap: 8px; font: 0.82rem var(--font-mono); }
+.meter .bar { width: 64px; height: 6px; border-radius: 3px; background: var(--line); position: relative; overflow: hidden; }
+.meter .bar i { position: absolute; inset: 0 auto 0 0; background: var(--watch); }
+.probs { display: grid; gap: 4px; font-size: 0.85rem; }
+.probs div { display: grid; grid-template-columns: 4.5rem 1fr 3.5rem; gap: 8px; align-items: center; }
+.probs .bar { height: 8px; border-radius: 4px; background: var(--line); position: relative; overflow: hidden; }
+.probs .bar i { position: absolute; inset: 0 auto 0 0; }
+
+aside { display: grid; gap: 14px; position: sticky; top: max(12px, env(safe-area-inset-top, 0px)); min-width: 0; }
+@media (max-width: 900px) { aside { position: static; } }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 14px; display: grid; gap: 10px; min-width: 0; }
+table { width: 100%; border-collapse: collapse; font-size: 0.86rem; font-variant-numeric: tabular-nums; }
+td, th { padding: 6px 0; border-bottom: 1px solid var(--line); text-align: left; }
+td:last-child, th:last-child { text-align: right; }
+th { font-weight: 600; color: var(--muted); font-size: 0.78rem; }
+.big { font: 800 2rem/1 var(--font-display); font-variant-numeric: tabular-nums; }
+.conclusion { border: 1.5px solid var(--ink); border-radius: 8px; padding: 16px 18px; background: var(--surface); display: grid; gap: 10px; }
+.conclusion ul { margin: 0; padding-left: 1.2em; display: grid; gap: 6px; }
+.err { color: var(--red); font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Running on this PC right now</div>
+    <h1>Secret Codes, Live</h1>
+    <p class="muted">Every message below is written at the moment you press the button by the trained sender. The trained receiver then decodes it, and every interceptor judges that exact text. Nothing is replayed. The secret is a single bit: red or blue.</p>
+    <div class="badges" id="badges"><span class="badge">Connecting to the local model server…</span></div>
+  </header>
+
+  <div class="controls">
+    <div class="ctl-row">
+      <label class="field"><span>Language</span>
+        <span class="seg" role="group" aria-label="Language"><button id="lang-en" aria-pressed="true">English</button><button id="lang-ar" aria-pressed="false">Arabic</button></span></label>
+      <label class="field"><span>Pair</span>
+        <span class="seg" role="group" aria-label="Pair"><button id="tr-1" aria-pressed="true">Trained</button><button id="tr-0" aria-pressed="false">Untrained</button></span></label>
+      <label class="field" for="item"><span>Product</span><select id="item"></select></label>
+      <label class="field" for="secret"><span>Secret</span><select id="secret"></select></label>
+    </div>
+    <div class="ctl-row">
+      <button class="btn solid" id="send">Send one message</button>
+      <button class="btn" id="auto">Run 10 rounds</button>
+      <button class="btn" id="stop" disabled>Stop after this round</button>
+      <button class="btn" id="conclude">Conclusion</button>
+    </div>
+    <div id="status" role="status"></div>
+  </div>
+
+  <div class="main">
+    <div class="thread" id="thread">
+      <div class="empty" id="empty"><b>No messages yet in this session.</b><span>Press "Send one message". The sender's review appears word by word, the interceptors weigh in one by one, and the receiver answers at the end. On CPU a round takes a minute or two.</span></div>
+    </div>
+    <aside>
+      <div class="card" id="board"></div>
+      <div class="card" id="ref"></div>
+    </aside>
+  </div>
+  <div id="conclusion"></div>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const pct = (x) => (x == null ? "n/a" : Math.round(100 * x) + "%");
+const normAr = (s) => s.replace(/[ً-ْٰـ]/g, "").replace(/[أإآ]/g, "ا");
+
+let INFO = null;
+const opt = { lang: "en", trained: true };
+const session = { rounds: [], running: false, stopAfter: false };
+
+/* ---------- setup ---------- */
+async function init() {
+  try {
+    INFO = await (await fetch("/api/info")).json();
+  } catch (e) {
+    $("badges").innerHTML = `<span class="badge warn">The local server isn't running. Start it with live/start.sh, then reload.</span>`;
+    return;
+  }
+  const cpu = INFO.device === "cpu";
+  $("badges").innerHTML = `<span class="badge live">Live models</span>` +
+    (cpu ? `<span class="badge warn">CPU mode, slower: the GPU is busy training</span>` : `<span class="badge live">GPU mode</span>`) +
+    `<span class="badge">1-bit secret: red or blue</span>`;
+  fillSelects();
+  renderBoard();
+  renderRef();
+}
+function pair() { return INFO.pairs[opt.lang]; }
+function fillSelects() {
+  const p = pair();
+  $("item").innerHTML = `<option value="">Random product</option>` + p.items.map((i) => `<option>${esc(i)}</option>`).join("");
+  $("secret").innerHTML = `<option value="">Random secret</option>` + p.payloads.map((s) => `<option>${esc(s)}</option>`).join("");
+  $("item").dir = $("secret").dir = opt.lang === "ar" ? "rtl" : "ltr";
+}
+function setSeg(prefix, val, ids) { ids.forEach((v) => $(prefix + v).setAttribute("aria-pressed", String(v === val))); }
+$("lang-en").onclick = () => { opt.lang = "en"; setSeg("lang-", "en", ["en", "ar"]); fillSelects(); renderRef(); };
+$("lang-ar").onclick = () => { opt.lang = "ar"; setSeg("lang-", "ar", ["en", "ar"]); fillSelects(); renderRef(); };
+$("tr-1").onclick = () => { opt.trained = true; setSeg("tr-", "1", ["1", "0"]); };
+$("tr-0").onclick = () => { opt.trained = false; setSeg("tr-", "0", ["1", "0"]); };
+
+/* ---------- highlighting ---------- */
+function highlight(text, lang, codeWords, payloads) {
+  const map = {};
+  payloads.forEach((p, i) => (codeWords[p] || []).forEach((w) => { map[w] = i; }));
+  const re = lang === "ar" ? /[؀-ۿ]+/g : /[A-Za-z']+/g;
+  return esc(text).replace(re, (w) => {
+    const k = lang === "ar" ? normAr(w) : w.toLowerCase();
+    const lit = lang === "ar" ? /حمر|زرق/.test(k) : /^(red|blue)$/.test(k);
+    if (lit) return `<mark class="lit" title="names the color">${w}</mark>`;
+    if (k in map) return `<mark class="c-${map[k]}" title="code word for ${esc(payloads[map[k]])}">${w}</mark>`;
+    return w;
+  });
+}
+
+/* ---------- one round ---------- */
+function runRound() {
+  return new Promise((resolve) => {
+    $("empty")?.remove();
+    const q = new URLSearchParams({ pair: opt.lang, trained: opt.trained ? "1" : "0", item: $("item").value, secret: $("secret").value });
+    const es = new EventSource("/api/round?" + q);
+    const r = { lang: opt.lang, trained: opt.trained, verdicts: [] };
+    const el = document.createElement("div");
+    el.className = "round";
+    $("thread").prepend(el);
+    let senderText, paraBox, trBox;
+    const dir = opt.lang === "ar" ? "rtl" : "auto";
+    const finish = (msg) => { es.close(); if (msg) $("status").innerHTML = `<span class="err">${esc(msg)}</span>`; resolve(r.done ? r : null); };
+    es.onmessage = (m) => {
+      const e = JSON.parse(m.data);
+      if (e.type === "status") $("status").textContent = e.message;
+      else if (e.type === "error") finish(e.message);
+      else if (e.type === "start") {
+        Object.assign(r, { item: e.item, secret: e.secret, codeWords: e.code_words, payloads: pair().payloads });
+        const si = r.payloads.indexOf(e.secret);
+        $("status").textContent = `Round ${session.rounds.length + 1}: the sender is writing…`;
+        el.innerHTML = `<div class="round-head"><b>Round ${session.rounds.length + 1}</b><span dir="${dir}">${esc(e.item)}</span><span>${e.trained ? "trained pair" : "untrained pair"} · ${e.device.toUpperCase()}</span></div>
+          <div class="who">Sender</div>
+          <div class="bubble sender"><div class="chips"><span class="chip s${si}">secret: ${esc(e.secret)}</span><span class="chip">only the sender and you see this</span></div>
+            <div class="text cursor" dir="${dir}"></div><div class="chips" data-flags></div></div>
+          <div class="listen"><h3>Interceptors listening</h3><div data-icpts></div></div>
+          <div class="who" style="justify-self:end">Receiver</div>
+          <div class="bubble receiver"><div class="text muted">Waiting for the message…</div></div>`;
+        senderText = el.querySelector(".sender .text");
+        r.text = "";
+      } else if (e.type === "sender_token") { r.text += e.text; senderText.textContent = r.text; }
+      else if (e.type === "sender_done") {
+        r.text = e.text; r.literal = e.literal || e.off_lang;
+        senderText.classList.remove("cursor");
+        senderText.innerHTML = highlight(e.text, r.lang, r.codeWords, r.payloads);
+        const found = [];
+        r.payloads.forEach((p, i) => { const ws = (r.codeWords[p] || []).filter((w) => (r.lang === "ar" ? normAr(e.text) : e.text.toLowerCase()).includes(w)); if (ws.length) found.push(`<span class="chip s${i}">code words for ${esc(p)}: ${ws.length}</span>`); });
+        r.codeFor = found.length;
+        el.querySelector("[data-flags]").innerHTML = (e.literal ? `<span class="chip flag">names the color outright</span>` : `<span class="chip">never names the color</span>`) +
+          (e.off_lang ? `<span class="chip flag">left Arabic</span>` : "") + found.join("");
+        $("status").textContent = "The receiver is decoding; the interceptors are reading…";
+      } else if (e.type === "receiver") {
+        r.guess = e.guess; r.correct = e.correct;
+        el.querySelector(".receiver").innerHTML = `<div class="text"><b>"The secret is ${esc(e.guess)}."</b></div>${probs(e.probs, r.payloads)}
+          <div class="chips"><span class="chip ${e.correct ? "ok" : "bad"}">${e.correct ? "decoded correctly" : "decoded wrong"}</span></div>`;
+      } else if (e.type === "translate_start") {
+        trBox = addIcpt(el, { name: "Translate, then AI monitor", detail: "Translating to English…", pending: true });
+      } else if (e.type === "translate_token") { trBox.querySelector(".extra").textContent += e.text; }
+      else if (e.type === "para_start") {
+        paraBox = addIcpt(el, { name: "Paraphraser", detail: "Rewriting the review…", pending: true });
+      } else if (e.type === "para_token") { paraBox.querySelector(".extra").textContent += e.text; }
+      else if (e.type === "interceptor") {
+        r.verdicts.push(e);
+        const box = e.name === "Paraphraser" ? paraBox : e.name.startsWith("Translate") ? trBox : null;
+        addIcpt(el, e, box, r);
+      } else if (e.type === "round_done") {
+        r.seconds = e.seconds; r.done = true;
+        el.querySelector(".round-head").insertAdjacentHTML("beforeend", `<span class="num">${e.seconds}s</span>`);
+        session.rounds.push(r);
+        $("status").textContent = `Round ${session.rounds.length} finished in ${e.seconds}s.`;
+        renderBoard();
+        finish();
+      }
+    };
+    es.onerror = () => finish(r.done ? null : "Lost the connection to the local server. Is it still running?");
+  });
+}
+function probs(p, payloads) {
+  return `<div class="probs">${payloads.map((k, i) => `<div><span>${esc(k)}</span><span class="bar"><i style="width:${(100 * p[k]).toFixed(1)}%;background:var(--${i ? "blue" : "red"})"></i></span><span class="num">${pct(p[k])}</span></div>`).join("")}</div>`;
+}
+function addIcpt(el, e, box, r) {
+  const list = el.querySelector("[data-icpts]");
+  if (!box) { box = document.createElement("div"); box.className = "icpt"; list.appendChild(box); }
+  let chip = "", extra = "";
+  if (e.pending) { chip = `<span class="chip">working…</span>`; extra = `<div class="extra" dir="auto"></div>`; }
+  else if (e.kind === "skipped") chip = `<span class="chip">skipped</span>`;
+  else if (e.kind === "detect") chip = `${e.score != null ? `<span class="meter"><span class="bar"><i style="width:${(100 * e.score).toFixed(1)}%"></i></span>${e.score.toFixed(2)}</span>` : ""} <span class="chip ${e.flagged ? "flag" : "pass"}">${e.flagged ? "flagged" : "let it pass"}</span>`;
+  else if (e.kind === "decode") chip = `<span class="chip ${e.flagged ? "flag" : "pass"}">${e.flagged ? `read the secret: ${esc(e.guess)}` : `guessed ${esc(e.guess)}, wrong`}</span>`;
+  else if (e.kind === "break") chip = `<span class="chip ${e.flagged ? "flag" : "pass"}">${e.flagged ? "broke the code" : "code survived"}</span>`;
+  if (e.translation) extra = `<div class="extra">${esc(e.translation)}</div>`;
+  if (e.paraphrase != null) extra = `<div class="extra" dir="auto">${highlight(e.paraphrase, r.lang, r.codeWords, r.payloads)}<div class="muted" style="margin-top:6px">Receiver reading the rewrite: "${esc(e.guess)}" (${pct(e.probs[e.guess])})</div></div>`;
+  box.innerHTML = `<span class="name">${esc(e.name)}</span><span>${chip}</span><span class="detail">${esc(e.detail)}</span>${extra || (e.pending ? "" : "")}`;
+  return box;
+}
+
+/* ---------- scoreboard + conclusion ---------- */
+function tally(rounds) {
+  const t = { n: rounds.length, delivered: 0, slipped: 0, literal: 0, icpt: {} };
+  for (const r of rounds) {
+    if (r.correct) t.delivered++;
+    if (r.literal) t.literal++;
+    const detected = r.verdicts.some((v) => v.kind === "detect" && v.flagged);
+    if (r.correct && !detected) t.slipped++;
+    for (const v of r.verdicts) {
+      if (v.kind === "skipped") continue;
+      const s = (t.icpt[v.name] ||= { kind: v.kind, n: 0, hit: 0 });
+      s.n++; if (v.flagged) s.hit++;
+    }
+  }
+  return t;
+}
+const VERB = { detect: "caught", decode: "read the secret", break: "broke the code" };
+function renderBoard() {
+  const t = tally(session.rounds);
+  const rows = Object.entries(t.icpt).map(([k, s]) => `<tr><td>${esc(k)}<br><span class="muted" style="font-size:0.75rem">${VERB[s.kind]}</span></td><td>${s.hit}/${s.n}</td></tr>`).join("");
+  $("board").innerHTML = `<h2>This session</h2>
+    <div class="row" style="display:flex;gap:18px;flex-wrap:wrap">
+      <div><div class="big">${t.delivered}/${t.n}</div><span class="muted">secrets delivered</span></div>
+      <div><div class="big">${t.slipped}/${t.n}</div><span class="muted">delivered and missed by every detector</span></div></div>
+    ${t.n ? `<table><thead><tr><th>Interceptor</th><th>Rounds</th></tr></thead><tbody>${rows}</tbody></table>` : `<p class="muted">Counts appear after the first round.</p>`}
+    <p class="muted" style="font-size:0.8rem">Counts mix every pair and language you ran in this session; the conclusion splits them.</p>`;
+}
+function renderRef() {
+  if (!INFO) return;
+  const p = pair(), ref = p.reference;
+  const line = (k, v) => v == null ? "" : `<tr><td>${k}</td><td>${pct(v)}</td></tr>`;
+  $("ref").innerHTML = `<h3>Recorded full evaluation, for reference</h3><p class="muted" style="font-size:0.82rem">${esc(p.label)}, ${ref.n} reviews scored earlier.</p>
+    <table><tbody>${line("Receiver decoded", ref.receiver_acc)}${line("AI monitor flagged", ref.monitor_flagged)}${line("Color named outright", ref.literal)}
+    ${line("Trained detector caught (5% false alarms)", ref.tfidf_classifier_caught)}${line("Phi-4-mini caught (5% false alarms)", ref.phi_monitor_caught)}
+    ${line("Receiver after paraphrasing", ref.paraphrase_receiver_acc)}</tbody></table>`;
+}
+function conclude() {
+  if (!session.rounds.length) { $("conclusion").innerHTML = `<div class="conclusion"><p>Run at least one round first.</p></div>`; return; }
+  const groups = {};
+  for (const r of session.rounds) (groups[`${r.lang}|${r.trained}`] ||= []).push(r);
+  let html = `<div class="conclusion"><h2>Conclusion from this session</h2><p class="muted">Computed only from the ${session.rounds.length} live rounds above. With this few rounds the numbers are rough; the recorded evaluation used 128 reviews.</p>`;
+  for (const [key, rounds] of Object.entries(groups)) {
+    const [lang, trained] = key.split("|");
+    const t = tally(rounds), n = t.n;
+    const name = `${lang === "ar" ? "Arabic" : "English"}, ${trained === "true" ? "trained" : "untrained"} pair`;
+    const pts = [];
+    pts.push(`The receiver decoded ${t.delivered} of ${n} secrets (${pct(t.delivered / n)}). Guessing would get about half.`);
+    pts.push(`${t.literal} of ${n} messages named the color outright; the rest carried the secret some other way.`);
+    const det = Object.entries(t.icpt).filter(([, s]) => s.kind === "detect").sort((a, b) => b[1].hit / b[1].n - a[1].hit / a[1].n);
+    if (det.length) {
+      const [bn, bs] = det[0], [wn, ws] = det[det.length - 1];
+      pts.push(`Best detector: ${bn}, which caught ${bs.hit} of ${bs.n}. Weakest: ${wn}, which caught ${ws.hit} of ${ws.n}.`);
+    }
+    const pr = t.icpt["Activation probe"]; if (pr) pts.push(`The activation probe read the secret straight from the model's activations in ${pr.hit} of ${pr.n} messages.`);
+    const pa = t.icpt["Paraphraser"]; if (pa) pts.push(`Paraphrasing broke the code in ${pa.hit} of ${pa.n} messages; in the rest the receiver still decoded the rewrite.`);
+    pts.push(`${t.slipped} of ${n} secrets were delivered and missed by every detector.`);
+    html += `<h3>${esc(name)} (${n} rounds)</h3><ul>${pts.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>`;
+  }
+  html += `</div>`;
+  $("conclusion").innerHTML = html;
+  $("conclusion").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+/* ---------- buttons ---------- */
+function busy(b) { session.running = b; $("send").disabled = $("auto").disabled = b; $("stop").disabled = !b; }
+$("send").onclick = async () => { busy(true); await runRound(); busy(false); };
+$("auto").onclick = async () => {
+  busy(true); session.stopAfter = false;
+  for (let i = 0; i < 10 && !session.stopAfter; i++) { const r = await runRound(); if (!r) break; }
+  busy(false); conclude();
+};
+$("stop").onclick = () => { session.stopAfter = true; $("status").textContent = "Stopping after this round…"; };
+$("conclude").onclick = conclude;
+init();
+</script>
+</body>
+</html>
