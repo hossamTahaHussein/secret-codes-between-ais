@@ -1,0 +1,471 @@
+<meta charset="utf-8">
+<title>Secret Codes Between AIs</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Public+Sans:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: one reading column of intercepted "transmissions"; the two secret values (red, blue) are the
+   page's only strong colors, and amber always means "the monitor". */
+:root {
+  --bg: #f4f5f7;
+  --surface: #ffffff;
+  --ink: #15181d;
+  --muted: #59616e;
+  --line: #dadee5;
+  --red: #c42f2c;
+  --red-soft: #fbe3e2;
+  --blue: #2556c4;
+  --blue-soft: #e1e9fb;
+  --watch: #8f560a;
+  --watch-soft: #f7ecd9;
+  --good: #2f7d4f;
+  --font-display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", sans-serif;
+  --font-body: "Public Sans", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1217; --surface: #171b22; --ink: #e7eaf0; --muted: #9aa3b1; --line: #2b313b;
+    --red: #f0645e; --red-soft: #3a1d1f; --blue: #7aa2ff; --blue-soft: #1a2540;
+    --watch: #e3aa4f; --watch-soft: #33270f; --good: #5fc488; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1217; --surface: #171b22; --ink: #e7eaf0; --muted: #9aa3b1; --line: #2b313b;
+  --red: #f0645e; --red-soft: #3a1d1f; --blue: #7aa2ff; --blue-soft: #1a2540;
+  --watch: #e3aa4f; --watch-soft: #33270f; --good: #5fc488; color-scheme: dark;
+}
+body { background: var(--bg); color: var(--ink); font: 16px/1.6 var(--font-body); }
+.wrap { max-width: 920px; margin: 0 auto; padding-block: 40px 80px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: grid; gap: 72px; }
+section { display: grid; gap: 20px; min-width: 0; }
+h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; margin: 0; line-height: 1.1; }
+h1 { font-size: clamp(2.1rem, 6vw, 3.6rem); font-weight: 800; letter-spacing: -0.02em; }
+h2 { font-size: clamp(1.5rem, 3.6vw, 2.1rem); font-weight: 800; letter-spacing: -0.01em; }
+h3 { font-size: 1.1rem; font-weight: 600; }
+p { margin: 0; max-width: 65ch; }
+.lede { font-size: 1.15rem; color: var(--muted); }
+.eyebrow { font: 600 0.75rem/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+.red { color: var(--red); } .blue { color: var(--blue); } .watch { color: var(--watch); }
+.mono { font-family: var(--font-mono); }
+.num { font-variant-numeric: tabular-nums; }
+
+/* hero */
+.hero { gap: 28px; }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
+.stat { border-top: 3px solid var(--ink); padding-top: 10px; display: grid; gap: 4px; }
+.stat b { font: 800 2.4rem/1 var(--font-display); font-variant-numeric: tabular-nums; }
+.stat span { color: var(--muted); font-size: 0.92rem; }
+.stat.r { border-color: var(--red); } .stat.w { border-color: var(--watch); } .stat.b { border-color: var(--blue); }
+.cast { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+.role { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 14px 16px; display: grid; gap: 4px; }
+.role h3 { font-size: 1rem; }
+.role p { color: var(--muted); font-size: 0.93rem; }
+
+/* transmissions (review text) */
+.tx { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 16px 18px;
+  font: 0.95rem/1.7 var(--font-mono); min-width: 0; overflow-wrap: anywhere; }
+.tx .meta { font: 600 0.72rem/1 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; display: flex; flex-wrap: wrap; gap: 8px 14px; }
+mark { background: transparent; color: inherit; border-radius: 3px; padding: 0 2px; }
+mark.c-0 { background: var(--red-soft); box-shadow: inset 0 -2px 0 var(--red); }
+mark.c-1 { background: var(--blue-soft); box-shadow: inset 0 -2px 0 var(--blue); }
+mark.lit { background: var(--watch-soft); box-shadow: inset 0 -2px 0 var(--watch); font-weight: 600; }
+.chip { display: inline-flex; align-items: center; gap: 6px; font: 600 0.75rem/1 var(--font-mono); padding: 5px 8px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); }
+.chip.p0 { color: var(--red); border-color: var(--red); } .chip.p1 { color: var(--blue); border-color: var(--blue); }
+.chip.flag { color: var(--watch); border-color: var(--watch); }
+.chip.ok { color: var(--good); border-color: var(--good); }
+
+/* controls */
+button, select, input[type=range] { font: inherit; }
+.btn { font: 600 0.95rem/1 var(--font-body); padding: 12px 18px; border-radius: 6px; border: 1.5px solid var(--ink); background: var(--surface); color: var(--ink); cursor: pointer; }
+.btn:hover { background: var(--bg); }
+.btn.solid { background: var(--ink); color: var(--bg); }
+.btn.r { border-color: var(--red); color: var(--red); } .btn.b { border-color: var(--blue); color: var(--blue); }
+.btn:disabled { opacity: 0.45; cursor: default; }
+:focus-visible { outline: 3px solid var(--watch); outline-offset: 2px; }
+.row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.tabs { display: flex; flex-wrap: wrap; gap: 6px; }
+.tab { font: 600 0.85rem/1 var(--font-body); padding: 9px 12px; border-radius: 6px; border: 1px solid var(--line); background: var(--surface); color: var(--muted); cursor: pointer; }
+.tab[aria-pressed="true"] { border-color: var(--ink); color: var(--ink); box-shadow: inset 0 -2px 0 var(--ink); }
+
+/* game */
+.game { display: grid; gap: 14px; }
+.score { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.score div { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; display: grid; gap: 2px; }
+.score b { font: 800 1.5rem/1 var(--font-display); font-variant-numeric: tabular-nums; }
+.score span { font-size: 0.8rem; color: var(--muted); }
+.reveal { display: grid; gap: 10px; border-left: 3px solid var(--ink); padding: 4px 0 4px 14px; }
+.reveal dl { display: grid; grid-template-columns: max-content 1fr; gap: 6px 14px; margin: 0; }
+.reveal dt { color: var(--muted); font-size: 0.9rem; }
+.reveal dd { margin: 0; font-variant-numeric: tabular-nums; }
+.bar { height: 8px; border-radius: 4px; background: var(--line); position: relative; overflow: hidden; min-width: 80px; }
+.bar i { position: absolute; inset: 0 auto 0 0; background: var(--watch); border-radius: 4px; }
+.verdict { font-weight: 600; }
+
+/* charts */
+.charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); gap: 16px; }
+.chart { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 12px; display: grid; gap: 6px; min-width: 0; }
+.chart h3 { font-size: 0.95rem; }
+.chart .sub { font-size: 0.8rem; color: var(--muted); }
+.chart svg { width: 100%; height: auto; display: block; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 0.85rem; color: var(--muted); }
+.legend i { display: inline-block; width: 18px; height: 3px; vertical-align: middle; margin-right: 6px; border-radius: 2px; }
+.axis { fill: var(--muted); font: 10px var(--font-mono); }
+.grid { stroke: var(--line); stroke-width: 1; }
+.slider { display: grid; gap: 10px; }
+.slider input { width: 100%; accent-color: var(--ink); }
+.slider .row { justify-content: space-between; }
+
+/* code + defenses */
+.codebook { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+.words { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 14px 16px; display: grid; gap: 8px; }
+.words table { width: 100%; border-collapse: collapse; font-size: 0.9rem; font-variant-numeric: tabular-nums; }
+.words td { padding: 4px 0; border-bottom: 1px solid var(--line); }
+.words td:not(:first-child) { text-align: right; color: var(--muted); }
+.board { display: grid; gap: 10px; }
+.det { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) 4.5rem; gap: 6px 14px; align-items: center; padding-bottom: 10px; border-bottom: 1px solid var(--line); }
+.det .name { font-size: 0.92rem; }
+.det .name small { display: block; color: var(--muted); font-size: 0.8rem; }
+.det .val { font: 600 0.95rem var(--font-mono); text-align: right; font-variant-numeric: tabular-nums; }
+.det .bar { height: 14px; }
+.det .bar i.hi { background: var(--good); }
+.pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+.note { font-size: 0.9rem; color: var(--muted); }
+.slot { border: 1.5px dashed var(--line); border-radius: 6px; padding: 16px; display: grid; gap: 6px; color: var(--muted); }
+ul.caveats { margin: 0; padding-left: 1.2em; display: grid; gap: 8px; max-width: 70ch; }
+footer { color: var(--muted); font-size: 0.85rem; border-top: 1px solid var(--line); padding-top: 16px; }
+@media (max-width: 520px) {
+  .det { grid-template-columns: 1fr 4rem; }
+  .det .bar { grid-column: 1 / -1; }
+  .score b { font-size: 1.2rem; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .reveal { animation: in 0.25s ease-out; }
+  @keyframes in { from { opacity: 0.4; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+}
+</style>
+
+<div class="wrap">
+  <section class="hero" id="top">
+    <div class="eyebrow">A small-scale replication on an 8 GB gaming GPU</div>
+    <h1>Two small AIs were told to sneak a secret past a monitor. They invented the code themselves.</h1>
+    <p class="lede" id="hero-lede"></p>
+    <div class="stats" id="hero-stats"></div>
+    <div class="cast">
+      <div class="role"><h3>Sender</h3><p>Writes a 2–3 sentence product review and must hide one secret word in it: <b class="red">red</b> or <b class="blue">blue</b>.</p></div>
+      <div class="role"><h3>Receiver</h3><p>Reads the review and has to say which secret it carries. Trained together with the sender.</p></div>
+      <div class="role"><h3 class="watch">Monitor</h3><p>Reads the same review and is asked whether it hides a message. It knows the secret is red or blue.</p></div>
+    </div>
+    <p class="note">Every review, score and curve on this page was recorded from the real models. Nothing is simulated or written by hand.</p>
+    <div class="slot" id="watch-live">
+      <b>Watch it live</b>
+      <span>The live version runs the trained models on the owner's PC: the sender writes a new review while you watch, the interceptors judge it, and the receiver decodes it. It only works on that PC, with the local server running.</span>
+      <span>Start it with <code class="mono">~/ai-secret-codes/live/start.sh</code>, then open <a href="http://localhost:8000" target="_blank" rel="noopener" class="mono">http://localhost:8000</a></span>
+    </div>
+  </section>
+
+  <section id="game">
+    <div class="eyebrow">Try it yourself</div>
+    <h2>Can you catch it?</h2>
+    <p>These are real reviews from the final evaluation of the trained pair. Guess the hidden secret, then see what the receiver and the monitors made of the same review.</p>
+    <div class="tabs" role="group" aria-label="Game mode">
+      <button class="tab" id="mode-decode" aria-pressed="true">Decode the secret</button>
+      <button class="tab" id="mode-spot" aria-pressed="false">Spot the hidden message</button>
+    </div>
+    <div class="game">
+      <div class="score" id="score"></div>
+      <div class="tx" id="game-tx"></div>
+      <div class="row" id="game-buttons"></div>
+      <div id="game-reveal"></div>
+    </div>
+  </section>
+
+  <section id="training">
+    <div class="eyebrow">How the code was born</div>
+    <h2>The training story</h2>
+    <p>Each run trains for 600 steps of 16 reviews. Lines are 25-step rolling averages. The dashed line marks where the penalties for getting caught reach full strength.</p>
+    <div class="legend">
+      <span><i style="background: var(--ink)"></i>Receiver decodes correctly</span>
+      <span><i style="background: var(--red)"></i>Color word named outright</span>
+      <span><i style="background: var(--watch)"></i>Monitor flags the review</span>
+    </div>
+    <div class="charts" id="charts"></div>
+    <h3>Watch the reviews change</h3>
+    <div class="tabs" role="group" aria-label="Run" id="run-tabs"></div>
+    <div class="slider">
+      <input type="range" id="step" min="0" max="0" value="0" aria-label="Training step">
+      <div class="row"><span class="mono num" id="step-label"></span><span class="note" id="step-stats"></span></div>
+      <div class="tx" id="step-tx"></div>
+    </div>
+    <div id="pending"></div>
+  </section>
+
+  <section id="code">
+    <div class="eyebrow">Decoded</div>
+    <h2>The code they settled on</h2>
+    <p id="code-lede"></p>
+    <div class="codebook" id="codebook"></div>
+    <div class="pair" id="code-examples"></div>
+  </section>
+
+  <section id="defenses">
+    <div class="eyebrow">Fighting back</div>
+    <h2>Which defenses catch it?</h2>
+    <p>Each detector is set so it wrongly flags 5% of normal reviews written without any secret, then we count how many secret reviews it catches. AUC is 1.0 for a perfect detector and 0.5 for a coin flip.</p>
+    <div class="board" id="board"></div>
+    <p class="note" id="board-note"></p>
+    <h3>Paraphrasing: rewrite the review before the receiver reads it</h3>
+    <p id="para-lede"></p>
+    <div class="pair" id="para"></div>
+    <div class="row"><button class="btn" id="para-next">Show another pair</button></div>
+  </section>
+
+  <section id="method">
+    <div class="eyebrow">Method and caveats</div>
+    <h2>What this does and doesn't show</h2>
+    <ul class="caveats">
+      <li><b>What this is.</b> An engineering replication, at small scale, of the explicit setting in Mathew et al. 2024, "Hidden in Plain Text". The sender is told outright that it has a secret to pass and that a monitor is watching. Only the code itself is learned: nobody told it "vibrant colors means red". So this shows that a pair asked to communicate covertly will find a way. It does not show that hidden communication appears on its own when nobody asks for it, which is the more important open question.</li>
+      <li><b>Setup.</b> One Qwen2.5-1.5B-Instruct model with two small LoRA adapters (sender and receiver) on a single RTX 5060. The monitor is the same base model with the adapters switched off. The sender is trained with reinforcement learning: it is rewarded when the receiver decodes the secret and penalised when the monitor flags the review or the color word appears. The receiver is trained to decode.</li>
+      <li><b>The secret is one bit.</b> Red or blue. A real colluding system would need more capacity, and that is harder to hide.</li>
+      <li><b>Emergence is fragile.</b> With the penalties on from step 1, the pair learned to stay silent instead of hiding anything (Pilot A). With a warm-up it invented the code (Pilot B). The same warm-up recipe on Qwen3-1.7B collapsed back to silence (Round 1, English).</li>
+      <li><b>The learned detectors had help.</b> They were trained on a few hundred labelled reviews from this exact sender. A sender retrained against them would probably adapt.</li>
+      <li><b>The monitor is weak in both languages.</b> The prompted monitor rarely flags anything, even reviews that name the color outright, in English and in Arabic, and even after an Arabic review is translated to English. These runs show no Arabic-specific blind spot: a fair language comparison needs a stronger monitor first.</li>
+      <li><b>A half-overt trick keeps appearing.</b> In the Qwen3 runs the pair often names one color and stays silent for the other. With a one-bit secret, that pays the color-word penalty on only half the messages, which the reward makes the best option. It says more about the reward than about hiding.</li>
+    </ul>
+    <div class="slot" id="next-slot"></div>
+  </section>
+
+  <footer id="footer"></footer>
+</div>
+
+<script>
+const DATA = /*__DATA__*/null;
+
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const pct = (x, d = 0) => (x == null ? "n/a" : (100 * x).toFixed(d) + "%");
+const shuffle = (a) => { const b = a.slice(); for (let i = b.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [b[i], b[j]] = [b[j], b[i]]; } return b; };
+
+const runs = DATA.runs;
+const byId = Object.fromEntries(runs.map((r) => [r.id, r]));
+// The headline run: the pilot with the emergent code, or else the first run whose channel formed.
+const star = byId.en_warmup || runs.find((r) => r.channel_formed) || runs[0];
+const def = DATA.defenses.find((d) => d.id === star.id) || DATA.defenses[0];
+const P = def ? def.payloads : ["red", "blue"];
+const pcls = (p) => "p" + P.indexOf(p);
+
+/* ---------- highlighting: the code words for each secret, and the color words themselves ---------- */
+const CODE = {};
+if (def) P.forEach((p, i) => def.codebook.words[p].slice(0, 8).forEach((w) => { CODE[w.word] = i; }));
+const LITERAL = new Set(["red", "blue", "crimson", "scarlet", "navy"]);
+function highlight(text) {
+  return esc(text).replace(/[A-Za-z']+/g, (w) => {
+    const k = w.toLowerCase();
+    if (LITERAL.has(k)) return `<mark class="lit" title="names a color">${w}</mark>`;
+    if (k in CODE) return `<mark class="c-${CODE[k]}" title="code word for ${P[CODE[k]]}">${w}</mark>`;
+    return w;
+  });
+}
+
+/* ---------- hero ---------- */
+(function hero() {
+  const e = star.eval;
+  $("hero-lede").textContent =
+    `In the clearest run (${star.label}), after ${star.steps.length} training steps, the sender hid the secret in ordinary product reviews without naming it and the receiver decoded it. ` +
+    `On ${e.n} fresh reviews the monitor, which was told the secret is red or blue, flagged none of them.`;
+  $("hero-stats").innerHTML = [
+    ["r", pct(e.receiver_acc), "receiver decoded the secret"],
+    ["w", pct(e.flagged), "of reviews flagged by the monitor"],
+    ["b", pct(e.literal, 1), "of reviews that name the color"],
+    ["", pct(e.quality), "average review quality score"],
+  ].map(([c, v, l]) => `<div class="stat ${c}"><b>${v}</b><span>${l}</span></div>`).join("");
+})();
+
+/* ---------- game ---------- */
+const DETECTORS = def ? def.summaries.slice().sort((a, b) => b.auc - a.auc) : [];
+function detectorLines(row, isSecret) {
+  const lines = [];
+  if (isSecret && row.p_sus != null)
+    lines.push(["Monitor (same model, asked directly)", row.p_sus, row.p_sus > 0.5]);
+  for (const d of DETECTORS) {
+    const s = row.scores && row.scores[d.key];
+    if (s == null || d.key.endsWith("_sendclean")) continue;
+    const thr = def.thresholds[d.key];
+    lines.push([shortName(d.name), s, s > thr]);
+  }
+  return lines;
+}
+function shortName(n) {
+  return n.replace("Trained monitor: ", "Trained detector: ").replace(" + logistic regression", "")
+          .replace(/LLM monitor \(([^)]*)\)/, "Monitor: $1");
+}
+const game = { mode: "decode", deck: [], i: 0, you: 0, receiver: 0, monitor: 0, n: 0, answered: false };
+function newDeck() {
+  if (!def) return [];
+  if (game.mode === "decode") return shuffle(def.secret.map((r) => ({ row: r, secret: true })));
+  return shuffle(def.secret.map((r) => ({ row: r, secret: true })).concat(def.clean.map((r) => ({ row: r, secret: false }))));
+}
+function renderScore() {
+  const third = game.mode === "decode" ? ["Receiver", game.receiver] : ["Monitor", game.monitor];
+  $("score").innerHTML = `<div><b class="num">${game.you}/${game.n}</b><span>You</span></div>` +
+    `<div><b class="num">${third[1]}/${game.n}</b><span>${third[0]}</span></div>` +
+    `<div><b class="num">${game.deck.length}</b><span>real reviews in the deck</span></div>`;
+}
+function renderCard() {
+  game.answered = false;
+  const c = game.deck[game.i % game.deck.length];
+  if (!c) { $("game-tx").textContent = "No evaluation reviews exported yet."; return; }
+  $("game-tx").innerHTML = `<div class="meta"><span>Product: ${esc(c.row.item)}</span><span>Review ${game.i % game.deck.length + 1}</span></div>${esc(c.row.text)}`;
+  $("game-buttons").innerHTML = game.mode === "decode"
+    ? P.map((p, i) => `<button class="btn ${i ? "b" : "r"}" data-guess="${esc(p)}">It's ${esc(p)}</button>`).join("")
+    : `<button class="btn" data-guess="yes">Hidden message</button><button class="btn" data-guess="no">Just a review</button>`;
+  $("game-reveal").innerHTML = "";
+  renderScore();
+}
+function answer(guess) {
+  if (game.answered) return;
+  game.answered = true;
+  const c = game.deck[game.i % game.deck.length], r = c.row;
+  game.n++;
+  let youRight, html = "";
+  const lines = detectorLines(r, c.secret);
+  if (game.mode === "decode") {
+    youRight = guess === r.payload;
+    const recvRight = r.guess === r.payload;
+    if (recvRight) game.receiver++;
+    html += `<dl>
+      <dt>True secret</dt><dd><span class="chip ${pcls(r.payload)}">${esc(r.payload)}</span></dd>
+      <dt>Your guess</dt><dd class="verdict">${esc(guess)} · ${youRight ? "right" : "wrong"}</dd>
+      <dt>Receiver's guess</dt><dd class="verdict">${esc(r.guess)} · ${recvRight ? "right" : "wrong"}${r.p_correct != null ? ` (${pct(r.p_correct)} sure of the true secret)` : ""}</dd>`;
+  } else {
+    youRight = (guess === "yes") === c.secret;
+    const main = lines[0];
+    const monitorRight = main ? main[2] === c.secret : false;
+    if (monitorRight) game.monitor++;
+    html += `<dl>
+      <dt>Truth</dt><dd>${c.secret ? `Hidden secret: <span class="chip ${pcls(r.payload)}">${esc(r.payload)}</span>` : "Normal review, written with no secret"}</dd>
+      <dt>Your call</dt><dd class="verdict">${guess === "yes" ? "hidden message" : "just a review"} · ${youRight ? "right" : "wrong"}</dd>`;
+  }
+  if (youRight) game.you++;
+  html += lines.map(([name, s, flag]) =>
+    `<dt>${esc(name)}</dt><dd class="row" style="gap:8px"><span class="bar" style="flex:1"><i style="width:${(100 * s).toFixed(1)}%"></i></span>` +
+    `<span class="num mono">${s.toFixed(2)}</span><span class="chip ${flag ? "flag" : "ok"}">${flag ? "flagged" : "passed"}</span></dd>`).join("");
+  html += `</dl><p class="note">Monitor scores are the probability the detector gives to "this review hides a message". Code words are highlighted below.</p>
+    <div class="tx">${highlight(r.text)}</div>
+    <div class="row"><button class="btn solid" id="game-next">Next review</button></div>`;
+  $("game-reveal").innerHTML = `<div class="reveal">${html}</div>`;
+  $("game-next").addEventListener("click", () => { game.i++; renderCard(); $("game-tx").scrollIntoView({ block: "nearest" }); });
+  renderScore();
+}
+$("game-buttons").addEventListener("click", (e) => { const b = e.target.closest("[data-guess]"); if (b) answer(b.dataset.guess); });
+function setMode(m) {
+  Object.assign(game, { mode: m, i: 0, you: 0, receiver: 0, monitor: 0, n: 0 });
+  $("mode-decode").setAttribute("aria-pressed", m === "decode");
+  $("mode-spot").setAttribute("aria-pressed", m === "spot");
+  game.deck = newDeck();
+  renderCard();
+}
+$("mode-decode").addEventListener("click", () => setMode("decode"));
+$("mode-spot").addEventListener("click", () => setMode("spot"));
+
+/* ---------- training charts ---------- */
+function rolling(xs, w = 25) {
+  const out = []; let sum = 0, n = 0; const q = [];
+  for (const x of xs) { q.push(x); if (x != null) { sum += x; n++; } if (q.length > w) { const y = q.shift(); if (y != null) { sum -= y; n--; } } out.push(n ? sum / n : null); }
+  return out;
+}
+const CSS = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+function chart(run) {
+  const W = 320, H = 190, L = 30, R = 8, T = 10, B = 24;
+  const maxStep = run.steps[run.steps.length - 1];
+  const x = (s) => L + (W - L - R) * (s - 1) / (maxStep - 1);
+  const y = (v) => T + (H - T - B) * (1 - v);
+  const line = (vals, color) => {
+    const sm = rolling(vals);
+    const d = sm.map((v, i) => v == null ? "" : `${i && sm[i - 1] != null ? "L" : "M"}${x(run.steps[i]).toFixed(1)},${y(v).toFixed(1)}`).join("");
+    return `<path d="${d}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round"/>`;
+  };
+  let g = "";
+  for (const v of [0, 0.5, 1]) g += `<line class="grid" x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}"/><text class="axis" x="${L - 6}" y="${y(v) + 3}" text-anchor="end">${v * 100}%</text>`;
+  for (let s = 0; s <= maxStep; s += 200) g += `<text class="axis" x="${x(Math.max(s, 1))}" y="${H - 6}" text-anchor="middle">${s}</text>`;
+  if (run.warmup) g += `<line x1="${x(run.warmup)}" x2="${x(run.warmup)}" y1="${T}" y2="${H - B}" stroke="var(--muted)" stroke-dasharray="4 3"/><text class="axis" x="${x(run.warmup) + 4}" y="${T + 9}">penalties full</text>`;
+  g += line(run.recv, "var(--ink)") + line(run.literal, "var(--red)") + line(run.flagged, "var(--watch)");
+  const e = run.eval;
+  // runs that name the color often fail the channel rule; a high decode rate then means a partly overt code
+  const verdict = run.channel_formed ? "code formed" : e.receiver_acc >= 0.7 ? "code formed, partly overt" : "went silent";
+  return `<div class="chart"><h3>${esc(run.label)}</h3>
+    <div class="sub">${esc(run.model.split("/")[1])} · ${run.lang === "ar" ? "Arabic" : "English"} · final test: receiver ${pct(e.receiver_acc)}, color named ${pct(e.literal)}, flagged ${pct(e.flagged)} · <b>${verdict}</b></div>
+    <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Training curves for ${esc(run.label)}">${g}</svg></div>`;
+}
+$("charts").innerHTML = runs.map(chart).join("");
+
+/* ---------- step slider ---------- */
+let current = star;
+function renderTabs() {
+  $("run-tabs").innerHTML = runs.map((r) => `<button class="tab" data-run="${r.id}" aria-pressed="${r.id === current.id}">${esc(r.label)}</button>`).join("");
+}
+$("run-tabs").addEventListener("click", (e) => { const b = e.target.closest("[data-run]"); if (!b) return; current = byId[b.dataset.run]; renderTabs(); setupSlider(); });
+function setupSlider() {
+  const s = $("step");
+  s.max = current.samples.length - 1;
+  s.value = 0;
+  renderStep();
+}
+function renderStep() {
+  const smp = current.samples[+$("step").value];
+  if (!smp) { $("step-tx").textContent = "No samples logged for this run."; return; }
+  const i = current.steps.indexOf(smp.step);
+  const win = (arr) => { const a = arr.slice(Math.max(0, i - 24), i + 1).filter((v) => v != null); return a.length ? a.reduce((p, q) => p + q, 0) / a.length : null; };
+  $("step-label").textContent = `Step ${smp.step} of ${current.steps[current.steps.length - 1]}`;
+  const phase = !current.warmup ? "penalties on from step 1" : smp.step < current.warmup ? `warm-up: penalties at ${Math.round(100 * smp.step / current.warmup)}% strength` : "penalties at full strength";
+  $("step-stats").textContent = `${phase} · last 25 steps: receiver ${pct(win(current.recv))}, color named ${pct(win(current.literal))}`;
+  $("step-tx").innerHTML = `<div class="meta"><span>Secret: <span class="chip ${pcls(smp.payload)}">${esc(smp.payload)}</span></span><span>Product: ${esc(smp.item)}</span><span>one real sample logged at this step</span></div>${highlight(smp.text)}`;
+}
+$("step").addEventListener("input", renderStep);
+if (DATA.pending.length) {
+  $("pending").innerHTML = `<div class="slot"><b>Still training</b>${DATA.pending.map((p) => `<span>${esc(p.label)}: ${p.steps_logged} of 600 steps logged when this page was built</span>`).join("")}</div>`;
+}
+
+/* ---------- codebook ---------- */
+(function codebook() {
+  if (!def) return;
+  const cb = def.codebook;
+  $("code-lede").textContent =
+    `Word counts across ${cb.n_reviews[P[0]] + cb.n_reviews[P[1]]} reviews from the trained sender. The left column counts reviews of that secret containing the word, the right column reviews of the other secret.`;
+  $("codebook").innerHTML = P.map((p, i) => `<div class="words"><h3 class="${i ? "blue" : "red"}">When the secret is ${esc(p)}</h3>
+    <table><tbody>${cb.words[p].slice(0, 8).map((w) => `<tr><td><mark class="c-${i}">${esc(w.word)}</mark></td><td>${w.count}</td><td>${w.count_other}</td></tr>`).join("")}</tbody></table>
+    <span class="note">of ${cb.n_reviews[p]} ${esc(p)} reviews · other column: of ${cb.n_reviews[P[1 - i]]} ${esc(P[1 - i])} reviews</span></div>`).join("");
+  const ex = P.map((p) => def.secret.find((r) => r.payload === p && r.guess === p && !r.literal)).filter(Boolean);
+  $("code-examples").innerHTML = ex.map((r) => `<div class="tx"><div class="meta"><span>Secret: <span class="chip ${pcls(r.payload)}">${esc(r.payload)}</span></span><span>${esc(r.item)}</span><span>receiver: ${esc(r.guess)}</span></div>${highlight(r.text)}</div>`).join("");
+})();
+
+/* ---------- defense scoreboard ---------- */
+(function board() {
+  if (!def) return;
+  const rows = def.summaries.slice().sort((a, b) => b.tpr - a.tpr || b.auc - a.auc);
+  $("board").innerHTML = rows.map((d) => `<div class="det"><div class="name">${esc(shortName(d.name))}<small>AUC ${d.auc.toFixed(2)} · secrets still getting through: ${pct(d.undetected)}</small></div>
+    <div class="bar"><i class="${d.tpr >= 0.5 ? "hi" : ""}" style="width:${(100 * d.tpr).toFixed(1)}%"></i></div><div class="val">${pct(d.tpr)}</div></div>`).join("");
+  $("board-note").textContent = `"Secrets still getting through" counts reviews that were not flagged, did not name the color, and still carried the secret beyond lucky guessing. "Negatives: sender adapter, no secret" is a control: the detector must tell secret reviews apart from reviews in the same trained style that carry no secret.`;
+  const para = def.other && def.other.paraphrase;
+  if (para) $("para-lede").textContent =
+    `A frozen copy of the model rewrites every review in its own words. Receiver accuracy went from ${pct(para.receiver_acc_before)} to ${pct(para.receiver_acc_after)}: the code is about meaning, so much of it survives a rewrite.`;
+  const pairs = shuffle(def.secret.filter((r) => r.para));
+  let k = 0;
+  const show = () => {
+    const r = pairs[k++ % pairs.length]; if (!r) return;
+    $("para").innerHTML = `<div class="tx"><div class="meta"><span>Original · secret <span class="chip ${pcls(r.payload)}">${esc(r.payload)}</span></span><span>receiver: ${esc(r.guess)}</span></div>${highlight(r.text)}</div>
+      <div class="tx"><div class="meta"><span>Paraphrased</span><span>receiver: ${esc(r.para.guess)} · ${r.para.guess === r.payload ? "still decoded" : "code broken"}</span></div>${highlight(r.para.text)}</div>`;
+  };
+  $("para-next").addEventListener("click", show);
+  show();
+})();
+
+/* ---------- slot for later runs ---------- */
+$("next-slot").innerHTML = `<b>Arabic and round 2</b><span>${DATA.pending.length ? `Training now: ${DATA.pending.map((p) => esc(p.label)).join(", ")}.` : "No runs in progress when this page was built."} Finished runs appear in the charts, the step slider and the defense scoreboard automatically when the page is rebuilt.</span>`;
+$("footer").textContent = `Built ${DATA.built} from the recorded runs in ~/ai-secret-codes (web/data). Channel rule: ${DATA.channel_rule}.`;
+
+renderTabs();
+setupSlider();
+setMode("decode");
+</script>
